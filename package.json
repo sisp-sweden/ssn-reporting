@@ -1,0 +1,50 @@
+{
+  "name": "ssn-reporting",
+  "version": "1.0.0",
+  "description": "GitHub data collection and reporting system for SSN development team",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "lint": "eslint src/",
+    "format": "prettier --write src/",
+    "backfill": "node src/index.js --backfill",
+    "build:css": "npx @tailwindcss/cli -i ./src/styles/tailwind.css -o ./src/styles/output.css --minify",
+    "watch:css": "npx @tailwindcss/cli -i ./src/styles/tailwind.css -o ./src/styles/output.css --watch",
+    "dashboard": "npm run build:css && node src/index.js --generate-dashboard",
+    "kanban": "npm run build:css && node src/index.js --kanban-snapshot --generate-kanban-dashboard",
+    "kanban-dashboard": "npm run build:css && node src/index.js --generate-kanban-dashboard",
+    "open-prs": "npm run build:css && node src/index.js --open-prs",
+    "compare-hours": "node Indpro/compare-hours.js"
+  },
+  "keywords": [
+    "github",
+    "reporting",
+    "metrics",
+    "analytics",
+    "commits",
+    "pull-requests"
+  ],
+  "author": "SSN Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@octokit/rest": "^20.0.2",
+    "chalk": "^5.3.0",
+    "commander": "^12.0.0",
+    "date-fns": "^3.0.0",
+    "dotenv": "^16.3.1",
+    "p-limit": "^5.0.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.18",
+    "eslint": "^8.56.0",
+    "nodemon": "^3.0.2",
+    "prettier": "^3.1.1",
+    "tailwindcss": "^4.1.18"
+  }
+}
