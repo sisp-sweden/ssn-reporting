@@ -1,0 +1,73 @@
+name: Weekly GitHub Report
+
+on:
+  # Run every Monday at 9 AM UTC
+  schedule:
+    - cron: '0 9 * * 1'
+
+  # Allow manual trigger from GitHub UI or CLI
+  workflow_dispatch:
+    inputs:
+      week:
+        description: 'Week to collect (current, last, YYYY-WW, or YYYY-MM-DD)'
+        required: false
+        default: 'current'
+      force:
+        description: 'Force refresh data'
+        required: false
+        type: boolean
+        default: false
+      generate_dashboard:
+        description: 'Generate HTML dashboard'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  collect-and-report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Collect GitHub data
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPORTING_GITHUB_TOKEN }}
+        run: |
+          ARGS="--week ${{ inputs.week || 'current' }}"
+          if [ "${{ inputs.force }}" == "true" ]; then
+            ARGS="$ARGS --force"
+          fi
+          if [ "${{ inputs.generate_dashboard }}" == "true" ]; then
+            ARGS="$ARGS --generate-dashboard"
+          fi
+          node src/index.js $ARGS
+
+      - name: Upload dashboard artifact
+        if: inputs.generate_dashboard == true || inputs.generate_dashboard == ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: github-dashboard-${{ github.run_number }}
+          path: |
+            dashboard.html
+            github-data/*.json
+          retention-days: 90
+
+      - name: Commit and push data (optional)
+        if: false  # Set to true if you want to commit data back to repo
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add github-data/
+          git diff --staged --quiet || git commit -m "chore: update weekly GitHub data [skip ci]"
+          git push

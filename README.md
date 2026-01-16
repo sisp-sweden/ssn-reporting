@@ -65,7 +65,9 @@ To create a GitHub token:
 
 ## Usage
 
-### Run the collector for current week
+### Option 1: Local Execution (Development)
+
+**Run the collector for current week:**
 
 ```bash
 npm start
@@ -78,11 +80,31 @@ This will:
 4. Save to `github-data/YYYY-WW.json`
 5. Display summary statistics
 
-### Development mode (with auto-reload)
+**Development mode (with auto-reload):**
 
 ```bash
 npm run dev
 ```
+
+### Option 2: GitHub Actions (Automated/Cloud)
+
+For automated execution without exposing your token:
+
+1. **Setup** (one-time): Follow [.github/SETUP.md](.github/SETUP.md) to configure GitHub Secrets
+2. **Automatic runs**: Workflows run on schedule (weekly/daily)
+3. **Manual trigger from Claude Cloud**:
+   ```bash
+   gh workflow run weekly-report.yml
+   gh workflow run update-dashboards.yml
+   ```
+
+**Benefits**:
+- ✅ No token exposed to Claude Cloud
+- ✅ Runs on GitHub's infrastructure
+- ✅ Automatic scheduling
+- ✅ Download results as artifacts
+
+See [GitHub Actions Setup Guide](.github/SETUP.md) for details.
 
 ## Output Format
 

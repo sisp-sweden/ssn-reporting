@@ -1,0 +1,58 @@
+name: Update All Dashboards
+
+on:
+  # Run every Monday at 8 AM UTC
+  schedule:
+    - cron: '0 8 * * 1'
+
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  update-dashboards:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Collect current week data
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPORTING_GITHUB_TOKEN }}
+        run: node src/index.js --week current
+
+      - name: Fetch open PRs
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPORTING_GITHUB_TOKEN }}
+        run: node src/index.js --open-prs
+
+      - name: Capture kanban snapshot
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPORTING_GITHUB_TOKEN }}
+        run: node src/index.js --kanban-snapshot
+
+      - name: Generate all dashboards
+        run: |
+          node src/index.js --generate-dashboard
+          node src/index.js --generate-kanban-dashboard
+
+      - name: Upload all dashboards
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-dashboards-${{ github.run_number }}
+          path: |
+            dashboard.html
+            open-prs.html
+            kanban-dashboard.html
+            github-data/*.json
+            kanban/*.json
+          retention-days: 90
