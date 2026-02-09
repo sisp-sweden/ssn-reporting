@@ -87,7 +87,6 @@ export function generateEmailHTML(emailData) {
   ).length;
 
   // Build user rows
-  const botNames = ['claude', 'Copilot'];
   const userRows = sortedUsers.map(([username, metrics], i) => {
     const isBot = botNames.includes(username);
     const bgColor = i % 2 === 0 ? '#ffffff' : '#f9fafb';
@@ -253,7 +252,6 @@ INDIVIDUAL PERFORMANCE
 ${'-'.repeat(30)}
 `;
 
-  const botNames = ['claude', 'Copilot'];
   for (const [username, metrics] of sortedUsers) {
     const isBot = botNames.includes(username);
     const botLabel = isBot ? ' 🤖 [Bot]' : '';

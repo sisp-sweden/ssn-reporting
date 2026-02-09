@@ -274,7 +274,7 @@ function generateTrendCharts(weeks, trends) {
           type: 'line',
           data: {
             labels: chartConfig.commits.labels,
-            datasets: [{ label: 'Commits', data: chartConfig.commits.data, borderColor: 'rgb(38, 38, 38)', backgroundColor: 'rgba(38, 38, 38, 0.1)', tension: 0.3, fill: true }]
+            datasets: [{ label: 'Commits', data: chartConfig.commits.data, borderColor: '#1a1a1a', backgroundColor: 'rgba(26, 26, 26, 0.1)', tension: 0.3, fill: true }]
           },
           options: { responsive: true, maintainAspectRatio: true }
         });
@@ -587,7 +587,7 @@ ${compiledCSS}
 
       personCharts.commits = new Chart(document.getElementById('personCommitsChart').getContext('2d'), {
         type: 'line',
-        data: { labels: weekLabels, datasets: [{ label: 'Commits', data: commitData, borderColor: 'rgb(38, 38, 38)', backgroundColor: 'rgba(38, 38, 38, 0.1)', tension: 0.3, fill: true }] },
+        data: { labels: weekLabels, datasets: [{ label: 'Commits', data: commitData, borderColor: '#1a1a1a', backgroundColor: 'rgba(26, 26, 26, 0.1)', tension: 0.3, fill: true }] },
         options: { responsive: true, maintainAspectRatio: true }
       });
 

@@ -8,16 +8,16 @@ export default {
     extend: {
       colors: {
         brand: {
-          50: "rgb(250, 250, 250)",
-          100: "rgb(245, 245, 245)",
-          200: "rgb(229, 229, 229)",
-          300: "rgb(212, 212, 212)",
-          400: "rgb(163, 163, 163)",
-          500: "rgb(115, 115, 115)",
-          600: "rgb(38, 38, 38)",
-          700: "rgb(64, 64, 64)",
-          800: "rgb(38, 38, 38)",
-          900: "rgb(23, 23, 23)",
+          50: "#fafafa",
+          100: "#f5f5f5",
+          200: "#e5e5e5",
+          300: "#d4d4d4",
+          400: "#a3a3a3",
+          500: "#737373",
+          600: "#1a1a1a",
+          700: "#404040",
+          800: "#262626",
+          900: "#171717",
         },
         neutral: {
           0: "rgb(255, 255, 255)",
@@ -69,10 +69,10 @@ export default {
           800: "rgb(17, 94, 89)",
           900: "rgb(19, 78, 74)",
         },
-        "brand-primary": "rgb(38, 38, 38)",
-        "default-font": "rgb(17, 24, 39)",
-        "subtext-color": "rgb(107, 114, 128)",
-        "neutral-border": "rgb(229, 231, 235)",
+        "brand-primary": "#1a1a1a",
+        "default-font": "#1a1a1a",
+        "subtext-color": "#707070",
+        "neutral-border": "#e0e0e0",
         white: "rgb(255, 255, 255)",
         "default-background": "rgb(255, 255, 255)",
       },
@@ -82,7 +82,7 @@ export default {
           {
             lineHeight: "16px",
             fontWeight: "400",
-            letterSpacing: "0em",
+            letterSpacing: "1.5px",
           },
         ],
         "caption-bold": [
@@ -90,7 +90,7 @@ export default {
           {
             lineHeight: "16px",
             fontWeight: "500",
-            letterSpacing: "0em",
+            letterSpacing: "1.5px",
           },
         ],
         body: [
@@ -98,7 +98,7 @@ export default {
           {
             lineHeight: "20px",
             fontWeight: "400",
-            letterSpacing: "0em",
+            letterSpacing: "0",
           },
         ],
         "body-bold": [
@@ -106,31 +106,31 @@ export default {
           {
             lineHeight: "20px",
             fontWeight: "500",
-            letterSpacing: "0em",
+            letterSpacing: "0",
           },
         ],
         "heading-3": [
-          "16px",
-          {
-            lineHeight: "20px",
-            fontWeight: "500",
-            letterSpacing: "0em",
-          },
-        ],
-        "heading-2": [
           "20px",
           {
             lineHeight: "24px",
-            fontWeight: "500",
-            letterSpacing: "0em",
+            fontWeight: "400",
+            letterSpacing: "0",
+          },
+        ],
+        "heading-2": [
+          "28px",
+          {
+            lineHeight: "32px",
+            fontWeight: "300",
+            letterSpacing: "0",
           },
         ],
         "heading-1": [
-          "30px",
+          "48px",
           {
-            lineHeight: "36px",
-            fontWeight: "500",
-            letterSpacing: "0em",
+            lineHeight: "52px",
+            fontWeight: "300",
+            letterSpacing: "-0.5px",
           },
         ],
         "monospace-body": [
@@ -138,34 +138,33 @@ export default {
           {
             lineHeight: "20px",
             fontWeight: "400",
-            letterSpacing: "0em",
+            letterSpacing: "0",
           },
         ],
       },
       fontFamily: {
-        caption: ["Geist", "system-ui", "sans-serif"],
-        "caption-bold": ["Geist", "system-ui", "sans-serif"],
-        body: ["Geist", "system-ui", "sans-serif"],
-        "body-bold": ["Geist", "system-ui", "sans-serif"],
-        "heading-3": ["Geist", "system-ui", "sans-serif"],
-        "heading-2": ["Geist", "system-ui", "sans-serif"],
-        "heading-1": ["Geist", "system-ui", "sans-serif"],
+        caption: ["-apple-system", "BlinkMacSystemFont", "'Segoe UI'", "'Helvetica Neue'", "Arial", "sans-serif"],
+        "caption-bold": ["-apple-system", "BlinkMacSystemFont", "'Segoe UI'", "'Helvetica Neue'", "Arial", "sans-serif"],
+        body: ["-apple-system", "BlinkMacSystemFont", "'Segoe UI'", "'Helvetica Neue'", "Arial", "sans-serif"],
+        "body-bold": ["-apple-system", "BlinkMacSystemFont", "'Segoe UI'", "'Helvetica Neue'", "Arial", "sans-serif"],
+        "heading-3": ["-apple-system", "BlinkMacSystemFont", "'Segoe UI'", "'Helvetica Neue'", "Arial", "sans-serif"],
+        "heading-2": ["-apple-system", "BlinkMacSystemFont", "'Segoe UI'", "'Helvetica Neue'", "Arial", "sans-serif"],
+        "heading-1": ["-apple-system", "BlinkMacSystemFont", "'Segoe UI'", "'Helvetica Neue'", "Arial", "sans-serif"],
         "monospace-body": ["monospace"],
-        sans: ["Geist", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+        sans: ["-apple-system", "BlinkMacSystemFont", "'Segoe UI'", "'Helvetica Neue'", "Arial", "sans-serif"],
       },
       boxShadow: {
-        sm: "0px 1px 2px 0px rgba(0, 0, 0, 0.05)",
-        DEFAULT: "0px 1px 2px 0px rgba(0, 0, 0, 0.05)",
-        md: "0px 4px 16px -2px rgba(0, 0, 0, 0.08), 0px 2px 4px -1px rgba(0, 0, 0, 0.08)",
-        lg: "0px 12px 32px -4px rgba(0, 0, 0, 0.08), 0px 4px 8px -2px rgba(0, 0, 0, 0.08)",
-        overlay:
-          "0px 12px 32px -4px rgba(0, 0, 0, 0.08), 0px 4px 8px -2px rgba(0, 0, 0, 0.08)",
+        sm: "0 2px 4px rgba(0, 0, 0, 0.05)",
+        DEFAULT: "0 2px 4px rgba(0, 0, 0, 0.05)",
+        md: "0 4px 8px rgba(0, 0, 0, 0.06)",
+        lg: "0 8px 24px rgba(0, 0, 0, 0.08)",
+        overlay: "0 8px 24px rgba(0, 0, 0, 0.08)",
       },
       borderRadius: {
-        sm: "4px",
-        md: "8px",
-        DEFAULT: "8px",
-        lg: "12px",
+        sm: "0",
+        md: "0",
+        DEFAULT: "0",
+        lg: "0",
         full: "9999px",
       },
       container: {

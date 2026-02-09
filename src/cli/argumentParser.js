@@ -45,6 +45,14 @@ export function parseArguments() {
       '--open-prs',
       'Fetch open PRs from all repositories and generate dashboard'
     )
+    .option(
+      '--send-email',
+      'Send weekly email report for the specified week'
+    )
+    .option(
+      '--dry-run',
+      'Generate and save email report without sending (for testing)'
+    )
     .parse(process.argv);
 
   const options = program.opts();
@@ -63,7 +71,9 @@ export function parseArguments() {
     kanbanSnapshot: options.kanbanSnapshot || false,
     date: options.date || today,
     generateKanbanDashboard: options.generateKanbanDashboard || false,
-    openPrs: options.openPrs || false
+    openPrs: options.openPrs || false,
+    sendEmail: options.sendEmail || false,
+    dryRun: options.dryRun || false
   };
 }
 

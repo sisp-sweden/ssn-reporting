@@ -96,7 +96,7 @@ ${compiledCSS}
   </style>
 </head>
 <body class="min-h-screen">
-  <header class="bg-success-600 text-white">
+  <header class="bg-brand-600 text-white">
     <div class="max-w-7xl mx-auto px-5 py-8">
       <h1 class="text-heading-1 font-medium mb-2">&#128256; Open Pull Requests</h1>
       <div class="text-body opacity-90">
@@ -225,42 +225,42 @@ function generateOverviewCards(stats) {
       <div class="metric-card">
         <div class="card-icon">&#128256;</div>
         <div class="flex-1">
-          <p class="card-value text-success-600">${stats.totalPRs}</p>
+          <p class="card-value text-brand-600">${stats.totalPRs}</p>
           <p class="card-title">Open PRs</p>
         </div>
       </div>
       <div class="metric-card">
         <div class="card-icon">&#128101;</div>
         <div class="flex-1">
-          <p class="card-value text-success-600">${stats.uniqueAuthors}</p>
+          <p class="card-value text-brand-600">${stats.uniqueAuthors}</p>
           <p class="card-title">Authors</p>
         </div>
       </div>
       <div class="metric-card">
         <div class="card-icon">&#128193;</div>
         <div class="flex-1">
-          <p class="card-value text-success-600">${stats.reposWithOpenPRs}</p>
+          <p class="card-value text-brand-600">${stats.reposWithOpenPRs}</p>
           <p class="card-title">Repos with PRs</p>
         </div>
       </div>
       <div class="metric-card">
         <div class="card-icon">&#8987;</div>
         <div class="flex-1">
-          <p class="card-value text-success-600">${stats.oldestAgeDays}d</p>
+          <p class="card-value text-brand-600">${stats.oldestAgeDays}d</p>
           <p class="card-title">Oldest PR</p>
         </div>
       </div>
       <div class="metric-card">
         <div class="card-icon">&#128221;</div>
         <div class="flex-1">
-          <p class="card-value text-success-600">${stats.draftCount}</p>
+          <p class="card-value text-brand-600">${stats.draftCount}</p>
           <p class="card-title">Drafts</p>
         </div>
       </div>
       <div class="metric-card">
         <div class="card-icon">&#128064;</div>
         <div class="flex-1">
-          <p class="card-value text-success-600">${stats.awaitingReview}</p>
+          <p class="card-value text-brand-600">${stats.awaitingReview}</p>
           <p class="card-title">Awaiting Review</p>
         </div>
       </div>
@@ -276,7 +276,7 @@ function generatePRTable(prs) {
   if (prs.length === 0) {
     return `
       <section class="bg-white rounded-lg p-6 shadow-sm">
-        <h2 class="section-header border-success-600">Pull Requests</h2>
+        <h2 class="section-header border-brand-600">Pull Requests</h2>
         <div class="text-center py-16 text-subtext-color">
           <div class="text-5xl mb-4">&#127881;</div>
           <div class="text-heading-3">No open pull requests!</div>
@@ -314,7 +314,7 @@ function generatePRTable(prs) {
 
   return `
     <section class="bg-white rounded-lg p-6 shadow-sm">
-      <h2 class="section-header border-success-600">Pull Requests</h2>
+      <h2 class="section-header border-brand-600">Pull Requests</h2>
       <div class="overflow-x-auto">
         <table class="data-table pr-table">
           <thead class="bg-neutral-50">

@@ -163,6 +163,92 @@ export function compareWeeks(currentWeekData, previousWeekData) {
 }
 
 /**
+ * Compare multiple weeks and return per-user and per-team metric arrays indexed by week
+ * @param {Array<Object>} weeksData - Array of week data objects in chronological order
+ * @returns {Object} { weeks, team, users } with time-series data
+ */
+export function compareMultipleWeeks(weeksData) {
+  if (!weeksData || weeksData.length === 0) {
+    return { weeks: [], team: [], users: {} };
+  }
+
+  const weeks = weeksData.map(w => w.week);
+
+  // Build team totals per week
+  const team = weeksData.map(weekData => ({
+    week: weekData.week,
+    commits: getTotalCommits(weekData),
+    prs: getTotalPRs(weekData),
+    linesAdded: getTotalLinesAdded(weekData),
+    linesDeleted: getTotalLinesDeleted(weekData),
+    reviewsGiven: getTotalMetric(weekData, 'reviewsGiven'),
+    reviewCommentsGiven: getTotalMetric(weekData, 'reviewCommentsGiven'),
+    discussionCommentsGiven: getTotalMetric(weekData, 'discussionCommentsGiven')
+  }));
+
+  // Collect all usernames across all weeks
+  const allUsernames = new Set();
+  for (const weekData of weeksData) {
+    if (weekData.users) {
+      for (const username of Object.keys(weekData.users)) {
+        allUsernames.add(username);
+      }
+    }
+  }
+
+  // Build per-user time-series
+  const users = {};
+  for (const username of allUsernames) {
+    users[username] = weeksData.map(weekData => {
+      const userData = weekData.users?.[username];
+      const weekly = userData?.weekly || {};
+      return {
+        week: weekData.week,
+        commits: weekly.commits || 0,
+        prs: weekly.prs || 0,
+        linesAdded: weekly.linesAdded || 0,
+        linesDeleted: weekly.linesDeleted || 0,
+        reviewsGiven: weekly.reviewsGiven || 0,
+        reviewCommentsGiven: weekly.reviewCommentsGiven || 0,
+        discussionCommentsGiven: weekly.discussionCommentsGiven || 0
+      };
+    });
+  }
+
+  // Build per-repository totals
+  const repositories = {};
+  for (const weekData of weeksData) {
+    if (weekData.repositoryMetrics) {
+      for (const [repo, metrics] of Object.entries(weekData.repositoryMetrics)) {
+        if (!repositories[repo]) {
+          repositories[repo] = [];
+        }
+        repositories[repo].push({
+          week: weekData.week,
+          ...metrics
+        });
+      }
+    }
+  }
+
+  return { weeks, team, users, repositories };
+}
+
+/**
+ * Get total of a specific metric from a week's data
+ * @param {Object} weekData - Week data object
+ * @param {string} metricName - Name of the metric field
+ * @returns {number} Total
+ */
+function getTotalMetric(weekData, metricName) {
+  let total = 0;
+  for (const username in weekData.users || {}) {
+    total += (weekData.users[username].weekly?.[metricName]) || 0;
+  }
+  return total;
+}
+
+/**
  * Get total commits from a week's data
  * @param {Object} weekData - Week data object
  * @returns {number} Total commits

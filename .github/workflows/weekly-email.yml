@@ -1,0 +1,43 @@
+name: Weekly Email Report
+
+on:
+  # Sunday 22:50 UTC = 23:50 CET
+  schedule:
+    - cron: '50 22 * * 0'
+
+  # Allow manual trigger from GitHub UI
+  workflow_dispatch:
+    inputs:
+      week:
+        description: 'Week to report (current, last, YYYY-WW, or YYYY-MM-DD)'
+        required: false
+        default: 'current'
+
+jobs:
+  collect-and-email:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Collect current week data
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPORTING_GITHUB_TOKEN }}
+        run: node src/index.js --week ${{ inputs.week || 'current' }}
+
+      - name: Send weekly email report
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ vars.EMAIL_FROM || 'SSN Reports <reports@swedenstartupnext.se>' }}
+          EMAIL_TO: ${{ vars.EMAIL_TO || 'jonathan.ahlbom@sisp.se' }}
+        run: node src/index.js --send-email --week ${{ inputs.week || 'current' }}

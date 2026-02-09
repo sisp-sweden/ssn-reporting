@@ -13,6 +13,7 @@ import {
   createEmptyWeekStructure,
   addCommitToData,
   addPRToData,
+  addMetricsToRepository,
   mergeWithExisting,
   getMissingDates,
   getWeekStatistics,
@@ -22,7 +23,8 @@ import {
   loadWeekData,
   saveWeekData,
   weekFileExists,
-  listWeekFiles
+  listWeekFiles,
+  getPreviousWeek
 } from './storage/fileManager.js';
 import {
   getCurrentWeek,
@@ -38,6 +40,13 @@ import { collectKanbanSnapshot } from './kanban/snapshotCollector.js';
 import { generateKanbanDashboard } from './kanban/dashboardGenerator.js';
 import { fetchAllOpenPRs } from './openPrs/openPrsCollector.js';
 import { generateOpenPRsPage } from './openPrs/openPrsHtmlGenerator.js';
+import { sendWeeklyEmailReport } from './email/emailOrchestrator.js';
+import { sendEnhancedWeeklyEmailReport } from './email/emailOrchestratorEnhanced.js';
+import { getEmailConfig } from './config/emailConfig.js';
+import { fetchReviewDataForPRs, countReviewsByUserAndDate, countReviewCommentsByUserAndDate, countDiscussionCommentsByUserAndDate } from './github/reviews.js';
+import { addReviewToData, addReviewCommentsToData, addDiscussionCommentsToData } from './storage/dataAggregator.js';
+import { saveEnrichedWeekData, buildEnrichedData } from './storage/enrichedDataManager.js';
+import { runAIAnalysis } from './ai/analysisWorkflow.js';
 import path from 'path';
 import fs from 'fs/promises';
 
@@ -45,24 +54,39 @@ import fs from 'fs/promises';
 dotenv.config();
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const OPENAI_MODEL_CONFIG = {
+  extraction: process.env.OPENAI_MODEL_EXTRACTION || 'gpt-4o-mini',
+  analysis: process.env.OPENAI_MODEL_ANALYSIS || 'gpt-4o'
+};
 
 /**
  * Main CLI orchestrator - parses arguments and routes to appropriate workflow
  */
 async function runCLI() {
   try {
-    // Validate GitHub token first
+    // Parse command-line arguments first (before token check)
+    const args = parseArguments();
+
+    console.log(chalk.bold.cyan('\n🔍 SSN GitHub Data Collector\n'));
+
+    // Send email route (doesn't need GITHUB_TOKEN)
+    if (args.sendEmail) {
+      const emailConfig = getEmailConfig();
+      console.log(chalk.bold.cyan('📧 Sending Weekly Email Report\n'));
+      // Use enhanced email with AI insights
+      await sendEnhancedWeeklyEmailReport(outputDirectory, args.week, emailConfig, args.dryRun);
+      console.log(chalk.green('\n✓ Complete!\n'));
+      return;
+    }
+
+    // Validate GitHub token for all other routes
     if (!GITHUB_TOKEN) {
       console.error(
         chalk.red('❌ Error: GITHUB_TOKEN not found in .env file')
       );
       process.exit(1);
     }
-
-    // Parse command-line arguments
-    const args = parseArguments();
-
-    console.log(chalk.bold.cyan('\n🔍 SSN GitHub Data Collector\n'));
 
     // Route based on arguments
     // Open PRs dashboard
@@ -186,6 +210,23 @@ async function fetchWeekData(year, week, forceRefresh = false) {
     const prs = await fetchPRsForDateRange(client, repositories, since);
     console.log();
 
+    // Fetch review data for all PRs
+    console.log(chalk.bold('Review Data:'));
+    let allReviewData = { reviews: [], reviewComments: [], discussionComments: [] };
+
+    for (const repository of repositories) {
+      const { owner, repo } = repository;
+      const repoPRs = prs.filter(pr => pr.repository === `${owner}/${repo}`);
+
+      if (repoPRs.length > 0) {
+        const reviewData = await fetchReviewDataForPRs(client, owner, repo, repoPRs);
+        allReviewData.reviews.push(...reviewData.reviews);
+        allReviewData.reviewComments.push(...reviewData.reviewComments);
+        allReviewData.discussionComments.push(...reviewData.discussionComments);
+      }
+    }
+    console.log();
+
     // Aggregate data
     console.log(chalk.dim('Aggregating data by user and date...\n'));
 
@@ -197,7 +238,7 @@ async function fetchWeekData(year, week, forceRefresh = false) {
       weekData.repositories = repositories.map(r => `${r.owner}/${r.repo}`);
     }
 
-    // Add commits to data
+    // Add commits to data (track repo metrics while aggregating)
     const commitStats = aggregateCommitStats(commits);
     for (const [username, dateStats] of Object.entries(commitStats)) {
       for (const [date, stats] of Object.entries(dateStats)) {
@@ -210,8 +251,17 @@ async function fetchWeekData(year, week, forceRefresh = false) {
         );
       }
     }
+    // Track per-repo commit metrics
+    for (const commit of commits) {
+      const commitDate = new Date(commit.date).toISOString().split('T')[0];
+      addMetricsToRepository(weekData, commit.repository, {
+        commits: 1,
+        linesAdded: commit.additions,
+        linesDeleted: commit.deletions
+      });
+    }
 
-    // Add PRs to data
+    // Add PRs to data (track repo metrics while aggregating)
     const prStats = countPRsByUserAndDate(prs);
     for (const [username, dateStats] of Object.entries(prStats)) {
       for (const [date, prCount] of Object.entries(dateStats)) {
@@ -219,6 +269,51 @@ async function fetchWeekData(year, week, forceRefresh = false) {
           addPRToData(weekData, username, date);
         }
       }
+    }
+    // Track per-repo PR metrics
+    for (const pr of prs) {
+      const prDate = new Date(pr.createdAt).toISOString().split('T')[0];
+      addMetricsToRepository(weekData, pr.repository, { prs: 1 });
+    }
+
+    // Add review data
+    const reviewStats = countReviewsByUserAndDate(allReviewData.reviews);
+    for (const [username, dateStats] of Object.entries(reviewStats)) {
+      for (const [date, count] of Object.entries(dateStats)) {
+        addReviewToData(weekData, username, date, count);
+      }
+    }
+
+    const reviewCommentStats = countReviewCommentsByUserAndDate(allReviewData.reviewComments);
+    for (const [username, dateStats] of Object.entries(reviewCommentStats)) {
+      for (const [date, count] of Object.entries(dateStats)) {
+        addReviewCommentsToData(weekData, username, date, count);
+      }
+    }
+
+    const discussionCommentStats = countDiscussionCommentsByUserAndDate(allReviewData.discussionComments);
+    for (const [username, dateStats] of Object.entries(discussionCommentStats)) {
+      for (const [date, count] of Object.entries(dateStats)) {
+        addDiscussionCommentsToData(weekData, username, date, count);
+      }
+    }
+
+    // Track per-repo review metrics
+    for (const review of allReviewData.reviews) {
+      const reviewDate = new Date(review.submittedAt).toISOString().split('T')[0];
+      addMetricsToRepository(weekData, review.repository, { reviewsGiven: 1 });
+    }
+
+    // Track per-repo review comment metrics
+    for (const comment of allReviewData.reviewComments) {
+      const commentDate = new Date(comment.createdAt).toISOString().split('T')[0];
+      addMetricsToRepository(weekData, comment.repository, { reviewCommentsGiven: 1 });
+    }
+
+    // Track per-repo discussion comment metrics
+    for (const comment of allReviewData.discussionComments) {
+      const commentDate = new Date(comment.createdAt).toISOString().split('T')[0];
+      addMetricsToRepository(weekData, comment.repository, { discussionCommentsGiven: 1 });
     }
 
     // If we had existing data, merge properly
@@ -248,14 +343,56 @@ async function fetchWeekData(year, week, forceRefresh = false) {
         }
       }
 
+      // Add review data to newData
+      const reviewStats = countReviewsByUserAndDate(allReviewData.reviews);
+      for (const [username, dateStats] of Object.entries(reviewStats)) {
+        for (const [date, count] of Object.entries(dateStats)) {
+          addReviewToData(newData, username, date, count);
+        }
+      }
+
+      const reviewCommentStats = countReviewCommentsByUserAndDate(allReviewData.reviewComments);
+      for (const [username, dateStats] of Object.entries(reviewCommentStats)) {
+        for (const [date, count] of Object.entries(dateStats)) {
+          addReviewCommentsToData(newData, username, date, count);
+        }
+      }
+
+      const discussionCommentStats = countDiscussionCommentsByUserAndDate(allReviewData.discussionComments);
+      for (const [username, dateStats] of Object.entries(discussionCommentStats)) {
+        for (const [date, count] of Object.entries(dateStats)) {
+          addDiscussionCommentsToData(newData, username, date, count);
+        }
+      }
+
       weekData = mergeWithExisting(existingData, newData);
     } else {
       calculateWeeklyTotals(weekData);
     }
 
-    // Save data
+    // Save basic data to github-data
     console.log(chalk.bold.cyan('\n💾 Saving data...\n'));
     await saveWeekData(outputDirectory, year, week, weekData);
+
+    // Run AI analysis automatically
+    const previousWeekData = await loadWeekData(
+      outputDirectory,
+      getPreviousWeek(year, week).year,
+      getPreviousWeek(year, week).week
+    );
+
+    const aiAnalysis = await runAIAnalysis(
+      weekData,
+      previousWeekData,
+      allReviewData,
+      prs,
+      OPENAI_API_KEY,
+      OPENAI_MODEL_CONFIG
+    );
+
+    // Build and save enriched data to /data directory
+    const enrichedData = buildEnrichedData(weekData, allReviewData, aiAnalysis);
+    await saveEnrichedWeekData(year, week, enrichedData);
 
     // Display summary
     console.log(chalk.bold.cyan('\n📈 Summary\n'));

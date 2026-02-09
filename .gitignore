@@ -39,6 +39,8 @@ src/styles/output.css
 
 # Generated data and reports
 github-data/
+data/
+/reports/
 kanban/
 dashboard.html
 open-prs.html

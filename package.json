@@ -16,6 +16,7 @@
     "kanban": "npm run build:css && node src/index.js --kanban-snapshot --generate-kanban-dashboard",
     "kanban-dashboard": "npm run build:css && node src/index.js --generate-kanban-dashboard",
     "open-prs": "npm run build:css && node src/index.js --open-prs",
+    "send-email": "node src/index.js --send-email --week current",
     "compare-hours": "node Indpro/compare-hours.js"
   },
   "keywords": [
@@ -37,7 +38,9 @@
     "commander": "^12.0.0",
     "date-fns": "^3.0.0",
     "dotenv": "^16.3.1",
+    "openai": "^6.18.0",
     "p-limit": "^5.0.0",
+    "resend": "^6.9.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

@@ -11,12 +11,27 @@ export function createEmptyWeekStructure(year, week, repos = []) {
   const weekStr = String(week).padStart(2, '0');
   const dates = getAllDatesInWeek(year, week);
 
+  // Initialize repositoryMetrics for each repo
+  const repositoryMetrics = {};
+  for (const repo of repos) {
+    repositoryMetrics[repo] = {
+      commits: 0,
+      prs: 0,
+      linesAdded: 0,
+      linesDeleted: 0,
+      reviewsGiven: 0,
+      reviewCommentsGiven: 0,
+      discussionCommentsGiven: 0
+    };
+  }
+
   return {
     week: `${year}-${weekStr}`,
     weekStart: dates[0],
     weekEnd: dates[dates.length - 1],
     generatedAt: new Date().toISOString(),
     repositories: repos,
+    repositoryMetrics,
     users: {}
   };
 }
@@ -34,7 +49,10 @@ function ensureUserExists(data, username) {
         commits: 0,
         prs: 0,
         linesAdded: 0,
-        linesDeleted: 0
+        linesDeleted: 0,
+        reviewsGiven: 0,
+        reviewCommentsGiven: 0,
+        discussionCommentsGiven: 0
       }
     };
   }
@@ -54,9 +72,43 @@ function ensureDateExists(data, username, date) {
       commits: 0,
       prs: 0,
       linesAdded: 0,
-      linesDeleted: 0
+      linesDeleted: 0,
+      reviewsGiven: 0,
+      reviewCommentsGiven: 0,
+      discussionCommentsGiven: 0
     };
   }
+}
+
+/**
+ * Add metrics to a repository's totals
+ * @param {Object} data - Week data object
+ * @param {string} repository - Repository name (e.g., 'sisp-sweden/ssn-admin')
+ * @param {Object} metrics - { commits, prs, linesAdded, linesDeleted, reviewsGiven, etc }
+ */
+export function addMetricsToRepository(data, repository, metrics = {}) {
+  if (!data.repositoryMetrics) {
+    data.repositoryMetrics = {};
+  }
+  if (!data.repositoryMetrics[repository]) {
+    data.repositoryMetrics[repository] = {
+      commits: 0,
+      prs: 0,
+      linesAdded: 0,
+      linesDeleted: 0,
+      reviewsGiven: 0,
+      reviewCommentsGiven: 0,
+      discussionCommentsGiven: 0
+    };
+  }
+
+  data.repositoryMetrics[repository].commits += metrics.commits || 0;
+  data.repositoryMetrics[repository].prs += metrics.prs || 0;
+  data.repositoryMetrics[repository].linesAdded += metrics.linesAdded || 0;
+  data.repositoryMetrics[repository].linesDeleted += metrics.linesDeleted || 0;
+  data.repositoryMetrics[repository].reviewsGiven += metrics.reviewsGiven || 0;
+  data.repositoryMetrics[repository].reviewCommentsGiven += metrics.reviewCommentsGiven || 0;
+  data.repositoryMetrics[repository].discussionCommentsGiven += metrics.discussionCommentsGiven || 0;
 }
 
 /**
@@ -66,19 +118,30 @@ function ensureDateExists(data, username, date) {
  * @param {string} date - Date in YYYY-MM-DD format
  * @param {number} linesAdded - Number of lines added
  * @param {number} linesDeleted - Number of lines deleted
+ * @param {string} repository - Repository name for repo metrics tracking
  */
 export function addCommitToData(
   data,
   username,
   date,
   linesAdded = 0,
-  linesDeleted = 0
+  linesDeleted = 0,
+  repository = null
 ) {
   ensureDateExists(data, username, date);
 
   data.users[username].daily[date].commits += 1;
   data.users[username].daily[date].linesAdded += linesAdded;
   data.users[username].daily[date].linesDeleted += linesDeleted;
+
+  // Track in repository metrics
+  if (repository) {
+    addMetricsToRepository(data, repository, {
+      commits: 1,
+      linesAdded,
+      linesDeleted
+    });
+  }
 }
 
 /**
@@ -86,10 +149,67 @@ export function addCommitToData(
  * @param {Object} data - Week data object
  * @param {string} username - GitHub username
  * @param {string} date - Date in YYYY-MM-DD format
+ * @param {string} repository - Repository name for repo metrics tracking
  */
-export function addPRToData(data, username, date) {
+export function addPRToData(data, username, date, repository = null) {
   ensureDateExists(data, username, date);
   data.users[username].daily[date].prs += 1;
+
+  // Track in repository metrics
+  if (repository) {
+    addMetricsToRepository(data, repository, { prs: 1 });
+  }
+}
+
+/**
+ * Add a review to the data structure
+ * @param {Object} data - Week data object
+ * @param {string} username - GitHub username (reviewer)
+ * @param {string} date - Date in YYYY-MM-DD format
+ * @param {number} count - Number of reviews (default 1)
+ * @param {string} repository - Repository name for repo metrics tracking
+ */
+export function addReviewToData(data, username, date, count = 1, repository = null) {
+  ensureDateExists(data, username, date);
+  data.users[username].daily[date].reviewsGiven += count;
+
+  if (repository) {
+    addMetricsToRepository(data, repository, { reviewsGiven: count });
+  }
+}
+
+/**
+ * Add review comments to the data structure
+ * @param {Object} data - Week data object
+ * @param {string} username - GitHub username (commenter)
+ * @param {string} date - Date in YYYY-MM-DD format
+ * @param {number} count - Number of review comments (default 1)
+ * @param {string} repository - Repository name for repo metrics tracking
+ */
+export function addReviewCommentsToData(data, username, date, count = 1, repository = null) {
+  ensureDateExists(data, username, date);
+  data.users[username].daily[date].reviewCommentsGiven += count;
+
+  if (repository) {
+    addMetricsToRepository(data, repository, { reviewCommentsGiven: count });
+  }
+}
+
+/**
+ * Add discussion comments to the data structure
+ * @param {Object} data - Week data object
+ * @param {string} username - GitHub username (commenter)
+ * @param {string} date - Date in YYYY-MM-DD format
+ * @param {number} count - Number of discussion comments (default 1)
+ * @param {string} repository - Repository name for repo metrics tracking
+ */
+export function addDiscussionCommentsToData(data, username, date, count = 1, repository = null) {
+  ensureDateExists(data, username, date);
+  data.users[username].daily[date].discussionCommentsGiven += count;
+
+  if (repository) {
+    addMetricsToRepository(data, repository, { discussionCommentsGiven: count });
+  }
 }
 
 /**
@@ -106,13 +226,19 @@ export function calculateWeeklyTotals(data) {
     weekly.prs = 0;
     weekly.linesAdded = 0;
     weekly.linesDeleted = 0;
+    weekly.reviewsGiven = 0;
+    weekly.reviewCommentsGiven = 0;
+    weekly.discussionCommentsGiven = 0;
 
     // Sum all daily values
     for (const dayData of Object.values(daily)) {
-      weekly.commits += dayData.commits;
-      weekly.prs += dayData.prs;
-      weekly.linesAdded += dayData.linesAdded;
-      weekly.linesDeleted += dayData.linesDeleted;
+      weekly.commits += dayData.commits || 0;
+      weekly.prs += dayData.prs || 0;
+      weekly.linesAdded += dayData.linesAdded || 0;
+      weekly.linesDeleted += dayData.linesDeleted || 0;
+      weekly.reviewsGiven += dayData.reviewsGiven || 0;
+      weekly.reviewCommentsGiven += dayData.reviewCommentsGiven || 0;
+      weekly.discussionCommentsGiven += dayData.discussionCommentsGiven || 0;
     }
   }
 }
