@@ -47,6 +47,7 @@ import { fetchReviewDataForPRs, countReviewsByUserAndDate, countReviewCommentsBy
 import { addReviewToData, addReviewCommentsToData, addDiscussionCommentsToData } from './storage/dataAggregator.js';
 import { saveEnrichedWeekData, buildEnrichedData } from './storage/enrichedDataManager.js';
 import { runAIAnalysis } from './ai/analysisWorkflow.js';
+import { runDailySummary } from './dailySummary.js';
 import path from 'path';
 import fs from 'fs/promises';
 
@@ -69,6 +70,21 @@ async function runCLI() {
     const args = parseArguments();
 
     console.log(chalk.bold.cyan('\n🔍 SSN GitHub Data Collector\n'));
+
+    // Daily standup route
+    if (args.dailyStandup) {
+      if (!GITHUB_TOKEN) {
+        console.error(chalk.red('❌ Error: GITHUB_TOKEN not found in .env file'));
+        process.exit(1);
+      }
+      const githubUsername = process.env.GITHUB_USERNAME;
+      if (!githubUsername) {
+        console.error(chalk.red('❌ Error: GITHUB_USERNAME not found in .env file'));
+        process.exit(1);
+      }
+      await runDailySummary(args.date, GITHUB_TOKEN, githubUsername, true);
+      return;
+    }
 
     // Send email route (doesn't need GITHUB_TOKEN)
     if (args.sendEmail) {

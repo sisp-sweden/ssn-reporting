@@ -17,6 +17,7 @@
     "kanban-dashboard": "npm run build:css && node src/index.js --generate-kanban-dashboard",
     "open-prs": "npm run build:css && node src/index.js --open-prs",
     "send-email": "node src/index.js --send-email --week current",
+    "daily-standup": "node src/index.js --daily-standup",
     "compare-hours": "node Indpro/compare-hours.js"
   },
   "keywords": [

@@ -53,6 +53,10 @@ export function parseArguments() {
       '--dry-run',
       'Generate and save email report without sending (for testing)'
     )
+    .option(
+      '--daily-standup',
+      'Generate a short daily standup of your GitHub activity'
+    )
     .parse(process.argv);
 
   const options = program.opts();
@@ -73,7 +77,8 @@ export function parseArguments() {
     generateKanbanDashboard: options.generateKanbanDashboard || false,
     openPrs: options.openPrs || false,
     sendEmail: options.sendEmail || false,
-    dryRun: options.dryRun || false
+    dryRun: options.dryRun || false,
+    dailyStandup: options.dailyStandup || false
   };
 }
 
