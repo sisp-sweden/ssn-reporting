@@ -4,6 +4,9 @@ description: Generate a short daily summary of your GitHub activity (commits, PR
 argument-hint: [--date YYYY-MM-DD]
 ---
 
+> **Note:** This command has been upgraded to a full skill!
+> See `.claude/skills/daily-standup/` for complete documentation, examples, and additional features.
+
 # Daily Standup
 
 Generate a compact standup summary of your GitHub activity for Slack.
@@ -12,8 +15,10 @@ Generate a compact standup summary of your GitHub activity for Slack.
 
 1. **Fetches commits** you authored across all tracked repos
 2. **Fetches PRs** you opened that day
-3. **Fetches PRs** you reviewed that day
-4. **Outputs** a short, copy-paste-ready summary for Slack
+3. **Fetches PRs** you reviewed that day (with review comment counts)
+4. **Fetches PR comments** you wrote (review comments and discussion comments)
+5. **Fetches issue comments** you wrote on GitHub Issues
+6. **Outputs** a short, copy-paste-ready summary for Slack
 
 ## Usage
 

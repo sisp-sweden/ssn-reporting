@@ -1,0 +1,30 @@
+{
+  "name": "@ssn-reporting/daily-standup-skill",
+  "version": "1.0.0",
+  "description": "Claude Code skill for generating daily GitHub standup summaries",
+  "type": "module",
+  "keywords": [
+    "github",
+    "reporting",
+    "standup",
+    "slack",
+    "productivity",
+    "claude-code-skill"
+  ],
+  "author": "SSN Development Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sisp-sweden/ssn-reporting.git"
+  },
+  "claudeCode": {
+    "skillVersion": "1.0.0",
+    "requiredEnvVars": [
+      "GITHUB_TOKEN",
+      "GITHUB_USERNAME"
+    ],
+    "commands": {
+      "daily-standup": "node ../../../src/index.js --daily-standup"
+    }
+  }
+}

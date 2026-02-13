@@ -127,7 +127,7 @@ node src/index.js --week current --generate-dashboard  # Fetch + generate
 ```
 
 ### `--open-prs` - Open Pull Requests Dashboard
-Fetches all currently open pull requests from the 7 tracked repositories and generates an interactive HTML dashboard:
+Fetches all currently open pull requests from the 8 tracked repositories and generates an interactive HTML dashboard:
 - **Overview cards** - Total PRs, unique authors, repos with PRs, oldest PR age, draft count, awaiting review
 - **PR table** - Repository, author, title, labels, requested reviewers, age
 - **Age color coding** - Green (< 3 days), Yellow (3-7 days), Red (> 7 days)
@@ -248,7 +248,34 @@ node src/index.js --week 2025-49 --force && npm run dashboard
 
 ## Claude Code Slash Commands
 
-Three slash commands are available in `.claude/commands/` for easy invocation:
+Four slash commands are available in `.claude/commands/` and `.claude/skills/` for easy invocation:
+
+### `/daily-standup` - Daily Activity Summary
+Generates a compact standup summary of your GitHub activity (commits, PRs raised, PRs reviewed, PR comments) for Slack.
+
+```bash
+/daily-standup                                 # Today's activity
+/daily-standup --date yesterday                # Yesterday's activity
+/daily-standup --date -3                       # 3 days ago
+/daily-standup --date 2026-02-11               # Specific date (YYYY-MM-DD)
+/daily-standup --date 260211                   # Specific date (YYMMDD)
+```
+
+**Output:** Console output formatted for Slack
+
+**Requirements:**
+- `GITHUB_TOKEN` environment variable (same as other commands)
+- `GITHUB_USERNAME` environment variable (e.g., `jonathanahlbom`)
+
+**Features:**
+- Tracks commits across all 8 repositories
+- Shows PRs you raised that day
+- Shows PRs you reviewed that day
+- Shows PRs you commented on with comment counts
+- Supports multiple date formats for flexibility
+- Output is copy-paste ready for Slack
+
+**Full documentation:** See `.claude/skills/daily-standup/SKILL.md` for comprehensive usage guide and examples.
 
 ### `/ssn-report` - GitHub Activity Data Collection
 Fetches commits, PRs, and code metrics from tracked repositories.
@@ -379,7 +406,7 @@ Currently there are no automated tests. Consider adding:
 - `src/storage/dataAggregator.js` - Data structure builders and merge logic
 - `src/storage/fileManager.js` - JSON file read/write with backup creation, bulk week operations
 - `src/utils/weekCalculator.js` - ISO 8601 week calculations (critical for correct date ranges)
-- `src/config/repositories.js` - List of 7 tracked sisp-sweden repos and output directory path
+- `src/config/repositories.js` - List of 8 tracked sisp-sweden repos and output directory path
 
 ### CLI and Arguments
 - `src/cli/argumentParser.js` - Command-line argument parsing using commander.js

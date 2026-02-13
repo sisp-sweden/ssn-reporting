@@ -29,12 +29,17 @@ export async function runDailySummary(dateArg, githubToken, githubUsername, comp
 
   console.log(chalk.dim(`Fetching activity for ${username} on ${date}...\n`));
 
-  // Fetch commits, PRs created, and PRs reviewed in parallel
-  const [commits, prsCreated, prsReviewed] = await Promise.all([
+  // Fetch commits, PRs created, PRs reviewed, PR comments, and issue comments in parallel
+  const [commits, prsCreated, reviewData, prComments, issueComments] = await Promise.all([
     fetchMyCommits(client, username, since, until),
     fetchMyPRs(client, username, date),
-    fetchMyReviews(client, username, date)
+    fetchMyReviewsWithDetails(client, username, date, since, until),
+    fetchMyPRComments(client, username, since, until),
+    fetchMyIssueComments(client, username, since, until)
   ]);
+
+  const prsReviewed = reviewData.prs;
+  const totalReviewComments = reviewData.totalComments;
 
   // Build output
   const sections = [];
@@ -66,7 +71,20 @@ export async function runDailySummary(dateArg, githubToken, githubUsername, comp
 
   if (prsReviewed.length > 0) {
     const lines = prsReviewed.map(pr => `• #${pr.number} ${pr.title} (${pr.repo})`);
-    sections.push(`👀 ${prsReviewed.length} PR${prsReviewed.length > 1 ? 's' : ''} reviewed\n${lines.join('\n')}`);
+    const reviewLabel = totalReviewComments > 0
+      ? `👀 ${prsReviewed.length} PR${prsReviewed.length > 1 ? 's' : ''} reviewed (${totalReviewComments} review comment${totalReviewComments > 1 ? 's' : ''})`
+      : `👀 ${prsReviewed.length} PR${prsReviewed.length > 1 ? 's' : ''} reviewed`;
+    sections.push(`${reviewLabel}\n${lines.join('\n')}`);
+  }
+
+  if (prComments.length > 0) {
+    const lines = prComments.map(c => `• #${c.number} ${c.title} (${c.repo}) — ${c.commentCount} comment${c.commentCount > 1 ? 's' : ''}`);
+    sections.push(`💬 ${prComments.length} PR${prComments.length > 1 ? 's' : ''} commented on\n${lines.join('\n')}`);
+  }
+
+  if (issueComments.length > 0) {
+    const lines = issueComments.map(c => `• #${c.number} ${c.title} (${c.repo}) — ${c.commentCount} comment${c.commentCount > 1 ? 's' : ''}`);
+    sections.push(`📝 ${issueComments.length} issue${issueComments.length > 1 ? 's' : ''} commented on\n${lines.join('\n')}`);
   }
 
   if (sections.length === 0) {
@@ -110,9 +128,28 @@ export async function runDailySummary(dateArg, githubToken, githubUsername, comp
     }
 
     if (prsReviewed.length > 0) {
-      bullets.push(`${prsReviewed.length} reviewed`);
+      const reviewLabel = totalReviewComments > 0
+        ? `${prsReviewed.length} reviewed (${totalReviewComments} review comments)`
+        : `${prsReviewed.length} reviewed`;
+      bullets.push(reviewLabel);
       for (const pr of prsReviewed) {
         bullets.push(`#${pr.number} ${pr.title} (${pr.repo})`);
+      }
+    }
+
+    if (prComments.length > 0) {
+      const totalComments = prComments.reduce((sum, c) => sum + c.commentCount, 0);
+      bullets.push(`${totalComments} PR comment${totalComments > 1 ? 's' : ''} on ${prComments.length} PR${prComments.length > 1 ? 's' : ''}`);
+      for (const c of prComments) {
+        bullets.push(`#${c.number} ${c.title} (${c.repo})`);
+      }
+    }
+
+    if (issueComments.length > 0) {
+      const totalComments = issueComments.reduce((sum, c) => sum + c.commentCount, 0);
+      bullets.push(`${totalComments} issue comment${totalComments > 1 ? 's' : ''} on ${issueComments.length} issue${issueComments.length > 1 ? 's' : ''}`);
+      for (const c of issueComments) {
+        bullets.push(`#${c.number} ${c.title} (${c.repo})`);
       }
     }
 
@@ -165,8 +202,9 @@ async function fetchMyPRs(client, username, date) {
   return results;
 }
 
-async function fetchMyReviews(client, username, date) {
+async function fetchMyReviewsWithDetails(client, username, date, since, until) {
   const results = [];
+  let totalComments = 0;
 
   // Use GitHub search API for reviews
   try {
@@ -180,14 +218,203 @@ async function fetchMyReviews(client, username, date) {
 
     for (const item of response.data.items) {
       const repoFullName = item.repository_url.split('/').slice(-2).join('/');
-      const repoShort = repoFullName.split('/').pop();
+      const [owner, repo] = repoFullName.split('/');
+      const repoShort = repo;
+
+      // Count review comments made on this date
+      try {
+        const reviews = await client.octokit.rest.pulls.listReviews({
+          owner,
+          repo,
+          pull_number: item.number,
+          per_page: 100
+        });
+
+        const sinceTime = new Date(since);
+        const untilTime = new Date(until);
+
+        for (const review of reviews.data) {
+          const reviewAuthor = (review.user?.login || '').toLowerCase();
+          const reviewDate = new Date(review.submitted_at);
+
+          if (reviewAuthor === username && reviewDate >= sinceTime && reviewDate < untilTime) {
+            // Count comments in this review
+            if (review.body && review.body.trim().length > 0) {
+              totalComments++;
+            }
+          }
+        }
+
+        // Also count review comments (inline code comments)
+        const reviewComments = await client.octokit.rest.pulls.listReviewComments({
+          owner,
+          repo,
+          pull_number: item.number,
+          per_page: 100
+        });
+
+        for (const comment of reviewComments.data) {
+          const commentAuthor = (comment.user?.login || '').toLowerCase();
+          const commentDate = new Date(comment.created_at);
+
+          if (commentAuthor === username && commentDate >= sinceTime && commentDate < untilTime) {
+            totalComments++;
+          }
+        }
+      } catch {
+        // Skip if we can't fetch review details
+      }
+
       results.push({ number: item.number, title: item.title, repo: repoShort });
     }
   } catch {
     // search API may fail, that's ok
   }
 
-  return results;
+  return { prs: results, totalComments };
+}
+
+async function fetchMyPRComments(client, username, since, until) {
+  const results = [];
+  const prMap = new Map(); // Track PRs we've already counted (pr key -> {number, title, repo, commentCount})
+
+  for (const { owner, repo } of repositories) {
+    try {
+      // Fetch all PRs updated in the date range
+      const sinceDate = since.split('T')[0];
+      const prs = await client.getPullRequests(owner, repo, sinceDate);
+
+      for (const pr of prs) {
+        try {
+          // Fetch review comments for this PR
+          const reviewComments = await client.octokit.rest.pulls.listReviewComments({
+            owner,
+            repo,
+            pull_number: pr.number,
+            per_page: 100
+          });
+
+          // Count comments by this user on this date
+          let commentCount = 0;
+          for (const comment of reviewComments.data) {
+            const commentAuthor = (comment.user?.login || '').toLowerCase();
+            const commentDate = new Date(comment.created_at);
+            const sinceTime = new Date(since);
+            const untilTime = new Date(until);
+
+            if (commentAuthor === username && commentDate >= sinceTime && commentDate < untilTime) {
+              commentCount++;
+            }
+          }
+
+          // Also fetch issue comments (comments on the PR itself, not in the diff)
+          const issueComments = await client.octokit.rest.issues.listComments({
+            owner,
+            repo,
+            issue_number: pr.number,
+            per_page: 100
+          });
+
+          for (const comment of issueComments.data) {
+            const commentAuthor = (comment.user?.login || '').toLowerCase();
+            const commentDate = new Date(comment.created_at);
+            const sinceTime = new Date(since);
+            const untilTime = new Date(until);
+
+            if (commentAuthor === username && commentDate >= sinceTime && commentDate < untilTime) {
+              commentCount++;
+            }
+          }
+
+          // If we found comments, add this PR to results
+          if (commentCount > 0) {
+            const prKey = `${repo}#${pr.number}`;
+            if (!prMap.has(prKey)) {
+              prMap.set(prKey, {
+                number: pr.number,
+                title: pr.title,
+                repo,
+                commentCount
+              });
+            }
+          }
+        } catch (err) {
+          // Skip PRs that error (might be permissions issues)
+        }
+      }
+    } catch (err) {
+      // Skip repos that error
+    }
+  }
+
+  return Array.from(prMap.values());
+}
+
+async function fetchMyIssueComments(client, username, since, until) {
+  const results = [];
+  const issueMap = new Map(); // Track issues we've already counted
+
+  for (const { owner, repo } of repositories) {
+    try {
+      // Fetch issues updated in the date range (not PRs)
+      const sinceDate = since.split('T')[0];
+      const response = await client.octokit.rest.issues.listForRepo({
+        owner,
+        repo,
+        state: 'all',
+        since: since,
+        per_page: 100
+      });
+
+      // Filter out pull requests (issues with pull_request property)
+      const issues = response.data.filter(issue => !issue.pull_request);
+
+      for (const issue of issues) {
+        try {
+          // Fetch comments for this issue
+          const comments = await client.octokit.rest.issues.listComments({
+            owner,
+            repo,
+            issue_number: issue.number,
+            per_page: 100
+          });
+
+          // Count comments by this user on this date
+          let commentCount = 0;
+          const sinceTime = new Date(since);
+          const untilTime = new Date(until);
+
+          for (const comment of comments.data) {
+            const commentAuthor = (comment.user?.login || '').toLowerCase();
+            const commentDate = new Date(comment.created_at);
+
+            if (commentAuthor === username && commentDate >= sinceTime && commentDate < untilTime) {
+              commentCount++;
+            }
+          }
+
+          // If we found comments, add this issue to results
+          if (commentCount > 0) {
+            const issueKey = `${repo}#${issue.number}`;
+            if (!issueMap.has(issueKey)) {
+              issueMap.set(issueKey, {
+                number: issue.number,
+                title: issue.title,
+                repo,
+                commentCount
+              });
+            }
+          }
+        } catch (err) {
+          // Skip issues that error
+        }
+      }
+    } catch (err) {
+      // Skip repos that error
+    }
+  }
+
+  return Array.from(issueMap.values());
 }
 
 /**
